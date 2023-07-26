@@ -1,0 +1,10 @@
+#!/bin/sh
+mount -t proc none /proc
+mount -t sysfs none /sys
+# 挂载共享文件夹
+mount -t 9p -o trans=virtio,version=9p2000.L test /root
+mknod -m 666 /dev/ttyS0 c 4 64
+echo -e "\nBoot took $(cut -d' ' -f1 /proc/uptime) seconds\n"
+setsid cttyhack sh
+
+exec /bin/sh

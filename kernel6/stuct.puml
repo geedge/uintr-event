@@ -1,0 +1,72 @@
+@startuml my
+
+struct uintr_upid {
+	struct {
+		u8 status; /* bit 0: ON, bit 1: SN,bit 7 : STATUS_BLKD, bit 2-6: reserved */
+		u8 reserved1; /* Reserved */
+		u8 nv; /* Notification vector */
+		u8 reserved2; /* Reserved */
+		u32 ndst; /* Notification destination */
+	} nc __packed; /* Notification control */
+	u64 puir; /* Posted user interrupt requests */  /*pir 发送方向量*/
+}
+
+struct uintr_upid_ctx {
+	struct list_head node;
+	struct task_struct *task; /* Receiver task */ // 接收方进程
+	u64 uvec_mask; // 跟踪注册的每一个向量
+	struct uintr_upid *upid; // 接收方的 UPID
+	refcount_t refs; / 线程安全的引用计数
+	bool receiver_active; /* Flag for UPID being mapped to a receiver */
+	bool waiting; // 是否在等待
+	+unsigned int waiting_cost;	/* Flags for who pays the waiting cost */
+}
+
+struct uintr_uitt_entry {
+	u8	valid; /* bit 0: valid, bit 1-7: reserved */
+	u8	user_vec;
+	u8	reserved[6];
+	u64	target_upid_addr;
+}
+
+struct uintr_uitt_ctx {
+	struct uintr_uitt_entry *uitt; // list,透过指针运算取得 uitt_entry
+	/* Protect UITT */
+	spinlock_t uitt_lock;
+	refcount_t refs; // 引用计数
+	+u64 uitt_mask[BITS_TO_U64(UINTR_MAX_UITT_NR)];
+	+struct uintr_upid_ctx *r_upid_ctx[UINTR_MAX_UITT_NR];
+}
+
+struct uvecfd_ctx {
+	struct uintr_upid_ctx *upid_ctx;	/* UPID context */
+	u64 uvec;				/* Vector number */
+}
+
+struct thread_struct {
+	/* Signifies whether the MSRs for that thread are active */
+	+unsigned int		uitt_activated:1;
+	+unsigned int		upid_activated:1;
+	+struct uintr_upid_ctx	*upid_ctx;/* Pointer to the UPID context for the task */
+	+struct mm_struct		*mm;
+}
+
+struct mm_context_t  {
+	struct uintr_uitt_ctx	*uitt_ctx;
+}
+
+uvecfd_ctx  o-- uintr_upid_ctx : one
+
+uintr_uitt_ctx  o-- uintr_uitt_entry : list
+
+uintr_upid_ctx  -down-> uintr_upid : contains
+
+uintr_wait_list  o-- uintr_upid_ctx : list
+
+thread_struct -down-> uintr_upid_ctx : contains
+
+thread_struct -down-> mm_context_t : contains
+
+mm_context_t -down-> uintr_uitt_ctx : contains
+
+@enduml
