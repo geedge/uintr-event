@@ -179,7 +179,8 @@ Message rate:       3746        msg/s
 
 基于 qemu 模拟器的数据: 
 
-- 接收者非挂起时, uintr-event 与 evenfd 速度相同或稍快一点点.
+- 接收者非挂起时, uintr-event 与 evenfd 速度快了4%-6%.
+  - 重新挂机测了多组数据 均在 4%-6% 之间, 与 [User_Interrupts_LPC_2021.pdf](https://lpc.events/event/11/contributions/985/attachments/756/1417/User_Interrupts_LPC_2021.pdf) 所给的 User IPI(blocked) 数据大约 7% 非常接近. 倾向于认为 qemu 下 uint-event 已经正常工作了
 - 接收者挂起时, uintr-event 唤醒接收者的速度要快 50% 左右.
   - 我对这个结论在物理机能否复现存疑, 幅度应该没有这么夸张.
   - 另外测试程序也需要复核以确保测试结果的准确性.
